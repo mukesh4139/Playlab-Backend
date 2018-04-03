@@ -35,8 +35,10 @@ class Parser
       @response_times[response_time] += 1
       api_parser(data[:method], data[:path])
     end
-    max_dyno()
-    compute_stats()
+    unless @total_elements == 0
+      max_dyno()
+      compute_stats()
+    end
   end
 
   def max_dyno
@@ -60,7 +62,7 @@ class Parser
   end
 
   def is_users method
-    !!method.match(/api\/users\/\d+/)
+    !!method.match(/api\/users\/[0-9]+/)
   end
 
   def api_parser method, path
@@ -81,20 +83,6 @@ class Parser
         @post_users += 1
       end
     end
-  end
-
-  def print_results
-    puts "GET /api/users/{user_id}/count_pending_messages: #{@count_pending_msgs}"
-    puts "GET /api/users/{user_id}/get_messages: #{@get_msgs}"
-    puts "GET /api/users/{user_id}/get_friends_progress: #{@get_friend_prog}"
-    puts "GET /api/users/{user_id}/get_friends_score: #{@get_friend_score}"
-    puts "POST /api/users/{user_id}: #{@post_users}"
-    puts "GET /api/users/{user_id}: #{@get_users}"
-    puts "Max Dyno: #{@max_dyno}"
-    puts "Total Elements: #{@total_elements}"
-    puts "Mode(s): #{@modes}"
-    puts "Mean: #{@mean}"
-    puts "Median: #{@median}"
   end
 
   def compute_stats
@@ -119,6 +107,7 @@ class Parser
       first_median_pos = @total_elements / 2
       second_median_pos = @total_elements / 2 + 1
       index = -1
+      first_median = nil
       @response_times.each do |key, value|
         index += 1
         cumm_sum += value
@@ -127,7 +116,7 @@ class Parser
           break
         end
       end
-      second_median = cumm_sum >= second_median_pos ? first_median : @response_times.keys[index+1]
+      second_median = cumm_sum >= second_median_pos ? first_median : @response_times.keys[index + 1]
       @median = (first_median + second_median) / 2
     end
   end
@@ -146,8 +135,21 @@ class Parser
     end
     @mean = mean_numerator / @total_elements
   end
+
+  def print_results
+    puts "GET /api/users/{user_id}/count_pending_messages: #{@count_pending_msgs}"
+    puts "GET /api/users/{user_id}/get_messages: #{@get_msgs}"
+    puts "GET /api/users/{user_id}/get_friends_progress: #{@get_friend_prog}"
+    puts "GET /api/users/{user_id}/get_friends_score: #{@get_friend_score}"
+    puts "POST /api/users/{user_id}: #{@post_users}"
+    puts "GET /api/users/{user_id}: #{@get_users}"
+    puts "Max Responding Dyno: #{@max_dyno}"
+    puts "Mode(s): #{@modes}"
+    puts "Mean: #{@mean}"
+    puts "Median: #{@median}"
+  end
 end
 
-parser = Parser.new('sample.log')
+parser = Parser.new(ARGV.first || 'sample.log')
 parser.open_file_and_parse()
 parser.print_results

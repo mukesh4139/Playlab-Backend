@@ -6,5 +6,5 @@ This is simple parser written in ruby using regex based pattern matching.
 
 
 ## Execution
-    $ ruby parser.rb
+    $ ruby parser.rb 'sample.log'   # passing file name as argument
     
