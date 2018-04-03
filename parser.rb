@@ -1,12 +1,15 @@
 class Parser
+  attr_reader :count_pending_msgs, :get_msgs, :get_friend_prog, :get_friend_score, :post_users, :get_users, \
+              :max_dyno, :mean, :median, :modes
+
   Line = Struct.new(:method, :path, :host, :fwd, :dyno, :connect, :service)
 
   LOG_FORMAT = /method=(\S+) path=(\S+) host=(\S+) fwd=(\S+) dyno=(\S+) connect=(\d+)ms service=(\d+)ms/
 
   def initialize(file_path)
     @file_path = file_path
-    @dynos = Hash.new
-    @response_times = Hash.new
+    @dynos = Hash.new(0)
+    @response_times = Hash.new(0)
     @max_dyno = nil
     @mean = @median = 0
     @modes = []             # there can be more than one mode
@@ -17,9 +20,18 @@ class Parser
     @get_friend_score = 0
     @post_users = 0
     @get_users = 0
+    parse
   end
 
-  def parse_line(line)
+  def parse
+    if File.exist?(@file_path)
+      open_file_and_parse
+    else
+      puts 'File does not exists.'
+    end
+  end
+
+  def parse_line line
     line.match(LOG_FORMAT) { |m| Line.new(*m.captures) }
   end
 
@@ -28,17 +40,16 @@ class Parser
     File.open(@file_path).each do |line|
       @total_elements += 1
       data = parse_line(line)
-      @dynos[data[:dyno]] ||= 0
       @dynos[data[:dyno]] += 1
       response_time = data[:connect].to_i + data[:service].to_i
-      @response_times[response_time] ||= 0
       @response_times[response_time] += 1
       api_parser(data[:method], data[:path])
     end
     unless @total_elements == 0
-      max_dyno()
-      compute_stats()
+      max_dyno
+      compute_stats
     end
+    print_results
   end
 
   def max_dyno
@@ -87,12 +98,12 @@ class Parser
 
   def compute_stats
     @response_times = @response_times.sort.to_h
-    mean()
-    mode()
-    median()
+    mean
+    mode
+    median
   end
 
-  def median()
+  def median
     cumm_sum = 0
     if @total_elements % 2 != 0
       median_pos = (@total_elements + 1) / 2
@@ -143,13 +154,9 @@ class Parser
     puts "GET /api/users/{user_id}/get_friends_score: #{@get_friend_score}"
     puts "POST /api/users/{user_id}: #{@post_users}"
     puts "GET /api/users/{user_id}: #{@get_users}"
+    puts "Mean of Response Time: #{@mean}"
+    puts "Median of Response Time: #{@median}"
+    puts "Mode(s) of Response Time: #{@modes}"
     puts "Max Responding Dyno: #{@max_dyno}"
-    puts "Mode(s): #{@modes}"
-    puts "Mean: #{@mean}"
-    puts "Median: #{@median}"
   end
 end
-
-parser = Parser.new(ARGV.first || 'sample.log')
-parser.open_file_and_parse()
-parser.print_results

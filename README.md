@@ -1,10 +1,14 @@
 # Playlab-Backend
-This is simple parser written in ruby using regex based pattern matching.
+This is a simple parser written in ruby using regex based pattern matching.
 
 ## Dependencies
-    * Ruby Version  : 2.1.2
+        * Ruby Version  : 2.1.2
+        * rspec (for testing)
 
 
 ## Execution
-    $ ruby parser.rb 'sample.log'   # passing file name as argument
+        $ ruby -r "./parser.rb" -e "Parser.new 'sample.log'"  # replace sample.log with the desired file's path
+    
+## Testing
+        $ rspec spec/parser_spec.rb
     
